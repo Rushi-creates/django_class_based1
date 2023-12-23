@@ -1,0 +1,192 @@
+- Class based views (IMP)
+
+    ```jsx
+    django-admin startproject projectname
+    python [manage.py](http://manage.py/) startapp core
+    ```
+
+    ---
+
+# [settings.py](http://settings.py/)
+
+    ```jsx
+    ALLOWED_HOSTS = ['*']
+    ```
+
+    ```
+    
+    INSTALLED_APPS = [
+    # ...
+    
+    'rest_framework',
+    'django_filters',
+    'corsheaders',
+    
+    # register apps here
+    'core',
+    
+    # ...
+    ]
+    ```
+
+    ```
+    MIDDLEWARE = [
+    #...
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    ]
+    ```
+
+    ```jsx
+    REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework.authentication.BasicAuthentication'],
+    'DEFAULT_PERMISSION_CLASSES' : [ 'rest_framework.permissions.IsAuthenticated' ]
+    }
+    ```
+
+    ```jsx
+    # EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # EMAIL_HOST = '[smtp.gmail.com](http://smtp.gmail.com/)'
+    # EMAIL_PORT = 587
+    # EMAIL_USE_TLS = True
+    # EMAIL_HOST_USER = '' # our sender email
+    # EMAIL_HOST_PASSWORD = '' # our sender email's pass
+    ```
+
+    ```jsx
+    # DATABASES = {
+    # 'default': {
+    # 'ENGINE': 'django.db.backends.postgresql_psycopg2', # keep this same
+    # 'NAME': 'railway', # this means Database ke
+    # 'USER': 'postgres',
+    # 'PASSWORD' : '2aj5U6i6Occx4PNur0cu'
+    # 'HOST' : 'containers-us-west-13.railway.app',
+    # 'PORT' : '5581'
+    # }
+    # }
+    ```
+
+    ---
+
+# [urls.py](http://urls.py/)
+
+    ```jsx
+    from django.contrib import admin
+    from django.urls import path, include
+    
+    urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', include('core.urls')),
+    ]
+    ```
+
+### appname/urls.py
+
+    ```jsx
+    from django.urls import path, include
+    from rest_framework.routers import DefaultRouter
+    from .views import YourModelViewSet
+    
+    router = DefaultRouter()
+    router.register(r'your-model', YourModelViewSet, basename='your-model')
+    
+    urlpatterns = [
+    path('api/', include(router.urls)),
+    ]
+    ```
+
+    ---
+
+# pagination
+
+    ```
+    from rest_framework import  pagination
+    from rest_framework.response import Response
+    from rest_framework.exceptions import NotFound
+    
+    class MyPaginationWithAllDetails(pagination.PageNumberPagination):
+        page_size = 14  
+        page_size_query_param = 'page_size'
+        max_page_size = 100
+    
+    class MyPagination(pagination.PageNumberPagination):
+        page_size = 14  
+        page_size_query_param = 'page_size'
+        max_page_size = 100
+    
+        def paginate_queryset(self, queryset, request, view=None):
+            try:
+                return super().paginate_queryset(queryset, request, view)
+            except NotFound:
+                return [] # return empty list instead of not found json
+        
+    
+        # get only results list 
+        def get_paginated_response(self, data):
+            return Response(data)
+    ```
+
+    ---
+
+# [views.py](http://views.py/)
+
+    ```
+    from rest_framework import viewsets, filters
+    
+    from core.pagination import MyPagination
+    from .models import YourModel
+    from .serializers import YourModelSerializer
+    from django_filters.rest_framework import DjangoFilterBackend
+    
+    from rest_framework.decorators import action
+    from rest_framework.response import Response
+    
+    class YourModelViewSet(viewsets.ModelViewSet):
+    queryset = YourModel.objects.all().order_by('id')
+    serializer_class = YourModelSerializer
+    pagination_class = MyPagination
+    
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_fields =  ['id','description', 'name']  # Specify fields to filter
+    ordering_fields = '__all__'
+     
+    # ---------------------------------------------------------------------------- #
+     #                @  USE IF YOU WANT TO CUSTOMIZE ANY FUNCTION                  #
+     # ---------------------------------------------------------------------------- #
+    # /api/your-model/{pk}/custom_function/
+    # def get_queryset(self):
+    #     # Custom logic to filter or modify the queryset
+    #     queryset = YourModel.objects.all()
+    #     # Example: Only include objects created by the authenticated user
+    #     if self.request.user.is_authenticated:
+    #         queryset = queryset.filter(created_by=self.request.user)
+    #     return queryset
+    
+    # ---------------------------------------------------------------------------- #
+    #           @  USE IF YOU WANT TO ADD ANY CUSTOM NEW FUNCTION                  #
+    # ---------------------------------------------------------------------------- #
+    
+    # from rest_framework.decorators import action
+    # from rest_framework.response import Response
+    # @action(detail=True, methods=['get'])
+    # def custom_function(self, request, pk=None):
+    #     instance = self.get_object()
+    #     serializer = YourModelSerializer(instance)
+    #     # Your custom logic using the serializer function
+    #     # For example, you can modify the serializer data or perform additional actions
+    #     modified_data = {'modified_field': serializer.data['some_field']}
+    #     return Response(modified_data)
+    
+    ```
+
+    for basic auth paste in terminal : enter userName , & pass , ( remember it )
+
+    ```jsx
+    python [manage.py](http://manage.py/) createsuperuser  
+    ```
+
+    ```jsx
+    python manage.py makemigrations
+    python manage.py migrate
+    python manage.py runserver
+    ```
